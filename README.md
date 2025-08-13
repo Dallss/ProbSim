@@ -189,6 +189,57 @@ npm run build
 npm run preview
 ```
 
+### Deploy to GitHub Pages
+
+#### Option 1: Manual Deployment
+1. **Install gh-pages package**
+   ```bash
+   npm install --save-dev gh-pages
+   ```
+
+2. **Update homepage in package.json**
+   Replace `yourusername` with your actual GitHub username:
+   ```json
+   "homepage": "https://yourusername.github.io/probsim"
+   ```
+
+3. **Deploy**
+   ```bash
+   npm run deploy
+   ```
+
+#### Option 2: Automatic Deployment (Recommended)
+1. **Push your code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Add GitHub Pages deployment"
+   git push origin main
+   ```
+
+2. **Enable GitHub Pages**
+   - Go to your repository on GitHub
+   - Navigate to Settings → Pages
+   - Set Source to "GitHub Actions"
+
+3. **The GitHub Actions workflow will automatically deploy on every push to main**
+
+#### Option 3: Using GitHub CLI
+```bash
+# Install GitHub CLI if not already installed
+# macOS: brew install gh
+# Windows: winget install GitHub.cli
+# Linux: sudo apt install gh
+
+# Login to GitHub
+gh auth login
+
+# Create repository (if not already created)
+gh repo create probsim --public --source=. --remote=origin --push
+
+# Deploy
+npm run deploy
+```
+
 ## Tech Stack
 - **React 18**: Modern React with hooks and functional components
 - **Vite**: Fast build tool and development server
