@@ -32,20 +32,22 @@ export function systematicSampling(data, sampleSize, stepSize = null, seed) {
   const random = new SeededRandom(seed)
   const N = data.length
   const n = sampleSize
-  
+
   // Calculate step size if not provided
   const k = stepSize || Math.floor(N / n)
-  
+
   // Random start point
   const startIndex = Math.floor(random.next() * k)
-  
+
   const selected = []
-  for (let i = 0; i < n && startIndex + i * k < N; i++) {
-    selected.push(data[startIndex + i * k])
+  for (let i = 0; i < n; i++) {
+    const index = (startIndex + i * k) % N // wrap-around here
+    selected.push(data[index])
   }
-  
+
   return selected
 }
+
 
 // Stratified Sampling
 export function stratifiedSampling(data, sampleSize, strataColumn, allocationType, seed) {

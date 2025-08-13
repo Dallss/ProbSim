@@ -41,6 +41,12 @@ const SAMPLING_METHODS = [
 function MethodSelection({ appState, updateAppState }) {
   const handleMethodSelect = (methodId) => {
     updateAppState({ selectedMethod: methodId })
+    setTimeout(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth"
+      });
+    }, 300); 
   }
 
   return (

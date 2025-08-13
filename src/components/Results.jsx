@@ -183,7 +183,7 @@ function Results({ appState, updateAppState }) {
         </button>
 
       {/* Results Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[600px]">
         <table className="min-w-full border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
