@@ -37,6 +37,22 @@ function App() {
     }
   }
 
+  const resetApp = () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to reset the app? This will lose all your current data and return you to the first step.'
+    )
+    
+    if (confirmed) {
+      setCurrentStep(1)
+      setAppState({
+        selectedMethod: null,
+        data: null,
+        parameters: {},
+        results: null
+      })
+    }
+  }
+
   const canProceed = () => {
     switch (currentStep) {
       case 1:
@@ -94,8 +110,8 @@ function App() {
           </button>
           
           <button
-            onClick={nextStep}
-            disabled={!canProceed() || currentStep === STEPS.length}
+            onClick={currentStep === STEPS.length ? resetApp : nextStep}
+            disabled={currentStep === STEPS.length ? false : !canProceed()}
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {currentStep === STEPS.length ? 'Finish' : 'Next →'}
