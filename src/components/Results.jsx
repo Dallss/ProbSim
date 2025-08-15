@@ -69,7 +69,70 @@ function Results({ appState, updateAppState }) {
   }
 
   const printResults = () => {
-    window.print()
+    if (!results) return
+    
+    const csvContent = convertToCSV(results.sampledData)
+    
+    // Create a new window with just the CSV content
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Sampling Results - ${results.method.toUpperCase()}</title>
+          <style>
+            body { font-family: monospace; font-size: 12px; margin: 20px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .summary { margin-bottom: 20px; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Sampling Results</h1>
+            <p><strong>Method:</strong> ${results.method.toUpperCase()}</p>
+            <p><strong>Population Size:</strong> ${results.populationSize}</p>
+            <p><strong>Sample Size:</strong> ${results.sampleSize}</p>
+            <p><strong>Sampling Rate:</strong> ${((results.sampleSize / results.populationSize) * 100).toFixed(1)}%</p>
+            <p><strong>Timestamp:</strong> ${new Date(results.timestamp).toLocaleString()}</p>
+          </div>
+          
+          <div class="summary">
+            <h2>Sampled Data</h2>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                ${Object.keys(results.sampledData[0] || {}).map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${results.sampledData.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  ${Object.keys(row).map(col => `<td>${row[col]}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="no-print" style="margin-top: 20px; text-align: center;">
+            <button onclick="window.print()">Print Results</button>
+            <button onclick="window.close()">Close</button>
+          </div>
+        </body>
+      </html>
+    `)
+    
+    printWindow.document.close()
   }
 
   const getStratumColor = (stratum) => {
