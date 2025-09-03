@@ -7,7 +7,6 @@ function Results({ appState, updateAppState }) {
   const [results, setResults] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showAllData, setShowAllData] = useState(false)
 
   useEffect(() => {
     if (appState.data && appState.parameters && appState.selectedMethod) {
@@ -207,9 +206,6 @@ function Results({ appState, updateAppState }) {
   }
 
   const columns = Object.keys(results.sampledData[0] || {})
-  const displayData = showAllData
-    ? results.sampledData
-    : results.sampledData.slice(0, 10)
 
   return (
     <div>
@@ -259,17 +255,11 @@ function Results({ appState, updateAppState }) {
         <button onClick={printResults} className="btn-secondary flex items-center">
           🖨️ Print Results
         </button>
-        <button
-          onClick={() => setShowAllData(!showAllData)}
-          className="btn-secondary"
-        >
-          {showAllData ? 'Show First 10' : 'Show All Data'}
-        </button>
       </div>
 
       {/* Results Table (now abstracted) */}
       <ResultsTable
-        data={displayData}
+        data={results.sampledData}
         columns={columns}
         parameters={results.parameters}
         getStratumColor={getStratumColor}
@@ -277,15 +267,9 @@ function Results({ appState, updateAppState }) {
       />
 
       {/* Pagination Info */}
-      {!showAllData && results.sampledData.length > 10 && (
+      {(
         <div className="mt-4 text-center text-sm text-gray-600">
           Showing 1–10 of {results.sampledData.length} results.
-          <button
-            onClick={() => setShowAllData(true)}
-            className="text-blue-600 hover:text-blue-800 ml-2 underline"
-          >
-            Show all
-          </button>
         </div>
       )}
 

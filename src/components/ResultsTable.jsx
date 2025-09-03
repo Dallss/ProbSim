@@ -25,7 +25,7 @@ function ResultsTable({ data, columns, parameters, getStratumColor, getClusterCo
       {/* Table */}
       <div
         className={`overflow-x-auto ${
-          isFullScreen ? 'max-h-[80vh]' : 'max-h-[600px]'
+          isFullScreen ? 'max-h-[80vh]' : 'max-h-[400px]'
         } border border-gray-300 rounded-lg`}
       >
         <table className="min-w-full border border-gray-300">
