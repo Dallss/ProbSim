@@ -31,6 +31,7 @@ function DataInput({ appState, updateAppState }) {
   const [manualData, setManualData] = useState('')
   const [error, setError] = useState('')
   const [preview, setPreview] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const validateData = (data) => {
     if (!data || data.length === 0) {
@@ -213,7 +214,29 @@ function DataInput({ appState, updateAppState }) {
 
       {inputMethod === 'upload' && (
         <div className="text-center">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-gray-400 transition-colors">
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 transition-colors ${
+              isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragging(true)
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+              if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0]
+                if (!file.name.endsWith('.csv')) {
+                  setError('Only CSV files are supported.')
+                  return
+                }
+                const fakeEvent = { target: { files: [file] } }
+                handleFileUpload(fakeEvent)
+              }
+            }}
+          >
             <input
               type="file"
               accept=".csv"
@@ -221,7 +244,7 @@ function DataInput({ appState, updateAppState }) {
               className="hidden"
               id="csv-upload"
             />
-            <label htmlFor="csv-upload" className="cursor-pointer">
+            <label htmlFor="csv-upload" className="cursor-pointer block">
               <div className="text-4xl mb-4">📁</div>
               <p className="text-lg font-medium text-gray-700 mb-2">
                 Click to upload CSV file
