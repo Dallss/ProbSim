@@ -2,6 +2,9 @@
 
 A comprehensive, frontend-only web application for simulating various probabilistic sampling methods. Built with React, Vite, and Tailwind CSS, ProbSim provides an intuitive interface for understanding and practicing different sampling techniques used in statistics and research.
 
+### Visit Site at: https://dallss.github.io/ProbSim/
+
+
 ## Features
 
 ### Sampling Methods
