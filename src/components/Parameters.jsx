@@ -69,7 +69,7 @@ function Parameters({ appState, updateAppState }) {
   const calculateSampleSize = () => {
     if (parameters.usePercentage && parameters.samplePercentage) {
       const percentage = parseFloat(parameters.samplePercentage) / 100
-      return Math.round(appState.data.length * percentage)
+      return Math.ceil(appState.data.length * percentage)
     }
     return parameters.sampleSize ? parseInt(parameters.sampleSize) : null
   }
