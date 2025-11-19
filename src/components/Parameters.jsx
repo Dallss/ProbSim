@@ -77,68 +77,99 @@ function Parameters({ appState, updateAppState }) {
   const renderSampleSizeInput = () => (
     <div className="mb-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Sample Size</h3>
-      
+  
+      {/* Radio buttons */}
       <div className="flex items-center space-x-4 mb-4">
         <label className="flex items-center">
           <input
             type="radio"
             checked={!parameters.usePercentage}
-            onChange={() => handleParameterChange('usePercentage', false)}
+            onChange={() => handleParameterChange("usePercentage", false)}
             className="mr-2"
           />
           Sample Size (count)
         </label>
+  
         <label className="flex items-center">
           <input
             type="radio"
             checked={parameters.usePercentage}
-            onChange={() => handleParameterChange('usePercentage', true)}
+            onChange={() => handleParameterChange("usePercentage", true)}
             className="mr-2"
           />
           Sample Percentage
         </label>
       </div>
-      
+  
+      {/* Count Input */}
       {!parameters.usePercentage ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Sample Size:
           </label>
+  
           <input
             type="number"
-            min="1"
+            min={1}
             max={appState.data?.length || 1}
             value={parameters.sampleSize}
-            onChange={(e) => handleParameterChange('sampleSize', e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value
+  
+              // Allow deletion (empty string)
+              if (raw === "") {
+                handleParameterChange("sampleSize", "")
+                return
+              }
+  
+              const max = appState.data?.length || 1
+              const num = Math.min(Number(raw), max)
+  
+              handleParameterChange("sampleSize", num)
+            }}
             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder={`Max: ${appState.data?.length || 0}`}
           />
         </div>
       ) : (
+        // Percentage Input
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Sample Percentage (%):
           </label>
+  
           <input
             type="number"
-            min="0.1"
-            max="100"
-            step="0.1"
+            min={0.1}
+            max={100}
+            step={0.1}
             value={parameters.samplePercentage}
-            onChange={(e) => handleParameterChange('samplePercentage', e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value
+  
+              // Allow deletion
+              if (raw === "") {
+                handleParameterChange("samplePercentage", "")
+                return
+              }
+  
+              const num = Math.min(Number(raw), 100)
+              handleParameterChange("samplePercentage", num)
+            }}
             className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="e.g., 20"
           />
         </div>
       )}
-      
-      {calculateSampleSize() && (
+  
+      {/* Preview */}
+      {calculateSampleSize() > 0 && (
         <p className="text-sm text-gray-600 mt-2">
           Actual sample size: <strong>{calculateSampleSize()}</strong> items
         </p>
       )}
     </div>
-  )
+  )  
 
   const renderStratifiedParams = () => (
     <div className="mb-6">
