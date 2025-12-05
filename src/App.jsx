@@ -4,6 +4,7 @@ import DataInput from './components/DataInput'
 import Parameters from './components/Parameters'
 import Results from './components/Results'
 import StepIndicator from './components/StepIndicator'
+import Header from './components/Header'
 
 const STEPS = [
   { id: 1, title: 'Choose Method', component: MethodSelection },
@@ -70,16 +71,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <Header />
+      
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            ProbSim
-          </h1>
-          <p className="text-lg text-gray-600">
-            Probabilistic Sampling Methods Simulator
-          </p>
-        </div>
+        
 
         {/* Step Indicator */}
         <StepIndicator 
