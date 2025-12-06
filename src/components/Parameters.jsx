@@ -16,13 +16,13 @@ function Parameters({ appState, updateAppState }) {
 
   useEffect(() => {
     // Set default strata/cluster columns if they exist
-    if (columns.length > 0) {
-      const defaultStrata = columns.find(col => 
+    if (appState.length > 0) {
+      const defaultStrata = appState.data[0].find(col => 
         col.toLowerCase().includes('strata') || 
         col.toLowerCase().includes('stratum') ||
         col.toLowerCase().includes('group')
       )
-      const defaultCluster = columns.find(col => 
+      const defaultCluster = appState.data[0].find(col => 
         col.toLowerCase().includes('cluster') || 
         col.toLowerCase().includes('region') ||
         col.toLowerCase().includes('city')
@@ -30,11 +30,11 @@ function Parameters({ appState, updateAppState }) {
       
       setParameters(prev => ({
         ...prev,
-        strataColumn: defaultStrata || columns[0],
-        clusterColumn: defaultCluster || columns[0]
+        strataColumn: defaultStrata || appState.data[0][0],
+        clusterColumn: defaultCluster || appState.data[0][0]
       }))
     }
-  }, [columns])
+  }, [Object.keys(appState.data[0])])
 
   const handleParameterChange = (key, value) => {
     const newParams = { ...parameters, [key]: value }
