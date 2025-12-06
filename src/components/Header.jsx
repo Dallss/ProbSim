@@ -5,11 +5,19 @@ import "./floating.css";
 const Header = () => {
   const containerRef = useRef(null);
 
-  // Auto-import icons
-  const icons = Object.values(
-    import.meta.glob("/src/assets/floating_icons/*", { eager: true })
-  ).map((m) => m.default);
+  const base = import.meta.env.BASE_URL; // handles dev vs production paths
 
+  const icons = [
+    `${base}floating_icons/icon1.png`,
+    `${base}floating_icons/icon2.png`,
+    `${base}floating_icons/icon3.png`,
+    `${base}floating_icons/icon4.png`,
+    `${base}floating_icons/icon5.png`,
+    `${base}floating_icons/icon6.png`,
+    `${base}floating_icons/icon7.png`,
+  ];
+
+  console.log(icons[1]);
   useEffect(() => {
     const stage = containerRef.current;
     const n = 7; // total number of floating icons
