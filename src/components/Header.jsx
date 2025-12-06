@@ -17,7 +17,6 @@ const Header = () => {
     `${base}floating_icons/icon7.png`,
   ];
 
-  console.log(icons[1]);
   useEffect(() => {
     const stage = containerRef.current;
     const n = 7; // total number of floating icons
