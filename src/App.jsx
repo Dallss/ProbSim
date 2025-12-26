@@ -5,6 +5,7 @@ import Parameters from './components/Parameters'
 import Results from './components/Results'
 import StepIndicator from './components/StepIndicator'
 import Header from './components/Header'
+import LearnModal from './components/modals/LearnModal'
 
 const STEPS = [
   { id: 1, title: 'Choose Method', component: MethodSelection },
@@ -14,6 +15,7 @@ const STEPS = [
 ]
 
 function App() {
+  const [modalOpen, setModalOpen] = useState(true);
   const [currentStep, setCurrentStep] = useState(1)
   const [appState, setAppState] = useState({
     selectedMethod: null,
@@ -73,6 +75,11 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header />
+
+      <LearnModal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <h1>Modal Title</h1>
+        <p>Your content goes here</p>
+      </LearnModal>
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         
