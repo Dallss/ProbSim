@@ -77,8 +77,6 @@ function App() {
       <Header />
 
       <LearnModal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <h1>Modal Title</h1>
-        <p>Your content goes here</p>
       </LearnModal>
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">

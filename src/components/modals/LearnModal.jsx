@@ -1,7 +1,175 @@
 import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 
 export default function LearnModal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
+
+  const canvasRef = useRef(null);
+
+  const [wheelList, setWheelList] = useState(['Right', 'Left', 'Up', 'Down']);
+  const [rotation, setRotation] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [selectedSlice, setSelectedSlice] = useState(null);
+  const [textareaValue, setTextareaValue] = useState(wheelList.join(', ')); // sync textarea
+
+  const learnData = {
+    title: "Simple Random Sampling",
+    description: `
+Simple Random Sampling is a method of choosing a sample from a population so that every individual has an equal chance of being selected. Imagine everyone in the population is placed on a giant spin wheel. When the wheel spins, whoever it lands on is chosen for the sample. This randomness ensures that the selected group fairly represents the larger population, making your results reliable and unbiased.
+`,
+  };
+
+ // Utility: determine if a color is "light" or "dark" (for text contrast)
+function isLightColor(h, s = 70, l = 60) {
+  // Convert HSL to RGB
+  const c = (1 - Math.abs(2 * l / 100 - 1)) * (s / 100);
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l / 100 - c / 2;
+  let r1, g1, b1;
+  if (h < 60)      [r1,g1,b1]=[c,x,0];
+  else if (h < 120)[r1,g1,b1]=[x,c,0];
+  else if (h < 180)[r1,g1,b1]=[0,c,x];
+  else if (h < 240)[r1,g1,b1]=[0,x,c];
+  else if (h < 300)[r1,g1,b1]=[x,0,c];
+  else             [r1,g1,b1]=[c,0,x];
+  const r = Math.round((r1+m)*255);
+  const g = Math.round((g1+m)*255);
+  const b = Math.round((b1+m)*255);
+
+  // Perceived brightness formula
+  const brightness = (r*299 + g*587 + b*114)/1000;
+  return brightness > 150; // true = light color
+}
+
+// Draw the wheel
+function drawWheel() {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  const size = canvas.offsetWidth;
+  canvas.width = size;
+  canvas.height = size;
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const radius = size / 2 - 10;
+
+  ctx.clearRect(0, 0, size, size);
+
+  const sliceAngle = (2 * Math.PI) / wheelList.length;
+
+  // Generate colors evenly spaced around the hue wheel
+  const colors = wheelList.map((_, i) => {
+    const hue = (i * 360) / wheelList.length;
+    return { h: hue, color: `hsl(${hue}, 70%, 60%)` };
+  });
+
+  wheelList.forEach((label, index) => {
+    const startAngle = index * sliceAngle + rotation;
+    const endAngle = startAngle + sliceAngle;
+
+    // Slice
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.closePath();
+
+    // Fill with selected slice override
+    ctx.fillStyle = selectedSlice === index ? "#34d399" : colors[index].color;
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    // Text
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(startAngle + sliceAngle / 2);
+    ctx.textAlign = "right";
+
+    // Automatically pick readable text color
+    ctx.fillStyle = selectedSlice === index 
+      ? "#111" // selected slice text contrast
+      : (isLightColor(colors[index].h) ? "#111" : "#FFF");
+    
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(label, radius - 15, 5);
+    ctx.restore();
+  });
+
+  // Pointer
+  ctx.beginPath();
+  ctx.moveTo(centerX, 25);       // tip pointing down
+  ctx.lineTo(centerX - 10, 5);   // left corner
+  ctx.lineTo(centerX + 10, 5);   // right corner
+  ctx.closePath();
+  ctx.fillStyle = "black";
+  ctx.fill();
+}
+
+
+  useEffect(() => {
+    if (isOpen) drawWheel();
+  }, [isOpen, wheelList, rotation, selectedSlice]);
+
+  // Easing function (easeOutCubic)
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  // Spin the wheel
+  const spinWheel = () => {
+    if (isSpinning) return;
+    setIsSpinning(true);
+    setSelectedSlice(null);
+
+    const sliceAngle = (2 * Math.PI) / wheelList.length;
+    const randomSlice = Math.floor(Math.random() * wheelList.length);
+    const randomOffset = Math.random() * sliceAngle; // randomness within slice
+    const spins = 6; // number of full rotations
+    const finalRotation = spins * 2 * Math.PI + randomSlice * sliceAngle + randomOffset;
+
+    const duration = 3000; // spin duration in ms
+    let startTime = null;
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(t);
+
+      setRotation(finalRotation * eased);
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        const normalizedRotation = finalRotation % (2 * Math.PI);
+      
+        // Calculate pointer angle relative to 0 radians (right)
+        const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
+      
+        // Determine which slice pointerAngle is in
+        const selectedIndex = Math.floor(pointerAngle / sliceAngle) % wheelList.length;
+      
+        setSelectedSlice(selectedIndex);
+        setIsSpinning(false);
+      }
+      
+      
+    };
+
+    requestAnimationFrame(animate);
+  };
+
+  // Handle textarea change
+  const handleTextareaChange = (e) => {
+    const value = e.target.value;
+    setTextareaValue(value);
+
+    // Convert comma-separated text into array
+    const items = value.split(',').map(item => item.trim()).filter(Boolean);
+    if (items.length > 0) {
+      setWheelList(items);
+    }
+  };
 
   return createPortal(
     <div
@@ -12,12 +180,57 @@ export default function LearnModal({ isOpen, onClose, children }) {
         className="bg-white w-4/5 h-4/5 rounded-lg relative p-6 overflow-auto shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
         <button
           className="absolute top-4 right-4 text-gray-700 hover:text-gray-900 text-2xl font-bold"
           onClick={onClose}
         >
           ✕
         </button>
+
+        <div className="flex">
+          {/* Left panel */}
+          <div className="w-1/2 p-4">
+            <div className="text-3xl font-semibold text-gray-800 mb-4">
+              {learnData.title}
+            </div>
+            <div className="text-600 text-[14px] text-justify">
+              {learnData.description.split("\n").map((line, idx) => {
+                const trimmed = line.trim();
+                return trimmed ? (
+                  <p key={idx} className="mb-4">{line}</p>
+                ) : null;
+              })}
+            </div>
+
+            {/* Textarea for wheel data */}
+            <div className="flex flex-col gap-2 mt-4">
+              <label className="font-semibold">Wheel Data (comma-separated)</label>
+              <textarea
+                value={textareaValue}
+                onChange={handleTextareaChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+              />
+            </div>
+
+            {/* Spin button */}
+            <button
+              onClick={spinWheel}
+              disabled={isSpinning || wheelList.length === 0}
+              className={`mt-4 px-4 py-2 rounded text-white ${
+                isSpinning ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
+              }`}
+            >
+              {isSpinning ? 'Simulating...' : 'Simulate'}
+            </button>
+          </div>
+
+          {/* Right panel */}
+          <div className="w-1/2 p-4">
+            <canvas ref={canvasRef} className="w-full aspect-square border-2" />
+          </div>
+        </div>
 
         {children}
       </div>
