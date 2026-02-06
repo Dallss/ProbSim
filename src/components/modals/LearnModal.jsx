@@ -6,11 +6,17 @@ export default function LearnModal({ isOpen, onClose, children }) {
 
   const canvasRef = useRef(null);
 
-  const [wheelList, setWheelList] = useState(['Right', 'Left', 'Up', 'Down']);
+  const [wheelList, setWheelList] = useState(['Zoro', 'Luffy', 'Nami', 'Sanji', 'Usopp', 'Chopper', 'Robin', 'Franky', 'Brook']);
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const [selectedSlice, setSelectedSlice] = useState(null);
-  const [textareaValue, setTextareaValue] = useState(wheelList.join(', ')); // sync textarea
+  const [textareaValue, setTextareaValue] = useState(wheelList.join(', '));
+  const [chosenValuesTextAreaValue, setChosenValuesTextAreaValue] = useState("");
+  const [withReplacement, setWithReplacement] = useState(false);
+  const [sampleSizeValue, setSampleSize] = useState(3);
+  const [sampleSizeError, setSampleSizeError] = useState(""); 
+  const [chosenSamples, setChosenSamples] = useState([]);
 
   const learnData = {
     title: "Simple Random Sampling",
@@ -40,6 +46,7 @@ function isLightColor(h, s = 70, l = 60) {
   const brightness = (r*299 + g*587 + b*114)/1000;
   return brightness > 150; // true = light color
 }
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Draw the wheel
 function drawWheel() {
@@ -107,58 +114,124 @@ function drawWheel() {
   ctx.fill();
 }
 
-
   useEffect(() => {
     if (isOpen) drawWheel();
   }, [isOpen, wheelList, rotation, selectedSlice]);
+
+  // Updates Chosen Samples field while simulating
+  useEffect(() => {
+    if (selectedSlice !== null) {
+      setChosenSamples(prev => [...prev, wheelList[selectedSlice]]);
+    }
+  }, [selectedSlice]);
+  
+  // Update textarea based on the chosenSamples array
+  useEffect(() => {
+    setChosenValuesTextAreaValue(chosenSamples.join(", "));
+  }, [chosenSamples]);
 
   // Easing function (easeOutCubic)
   const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
   // Spin the wheel
-  const spinWheel = () => {
+  const spinWheel = async (replacement, iterations) => {
     if (isSpinning) return;
     setIsSpinning(true);
-    setSelectedSlice(null);
+    const originalWheel = [...wheelList]; // keep original for restoration
+  
+    for (let i = 0; i < iterations; i++) {
+      setSelectedSlice(null);
+  
+      const sliceAngle = (2 * Math.PI) / wheelList.length;
+      const randomSlice = Math.floor(Math.random() * wheelList.length);
+      const randomOffset = Math.random() * sliceAngle; // randomness within slice
+      const spins = 0; // number of full rotations
+      const finalRotation = spins * 2 * Math.PI + randomSlice * sliceAngle + randomOffset;
+  
+      const duration = 3000;
+      let startTime = null;
+  
+      const animate = (timestamp) => {
 
-    const sliceAngle = (2 * Math.PI) / wheelList.length;
-    const randomSlice = Math.floor(Math.random() * wheelList.length);
-    const randomOffset = Math.random() * sliceAngle; // randomness within slice
-    const spins = 6; // number of full rotations
-    const finalRotation = spins * 2 * Math.PI + randomSlice * sliceAngle + randomOffset;
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = easeOutCubic(t);
+  
+        setRotation(finalRotation * eased);
+  
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          const sliceCount = wheelList.length;
+        const sliceAngle = (2 * Math.PI) / sliceCount;
 
-    const duration = 3000; // spin duration in ms
-    let startTime = null;
-
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = easeOutCubic(t);
-
-      setRotation(finalRotation * eased);
-
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
+        // Wrap rotation into [0, 2π)
         const normalizedRotation = finalRotation % (2 * Math.PI);
-      
-        // Calculate pointer angle relative to 0 radians (right)
-        const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
-      
-        // Determine which slice pointerAngle is in
-        const selectedIndex = Math.floor(pointerAngle / sliceAngle) % wheelList.length;
-      
-        setSelectedSlice(selectedIndex);
-        setIsSpinning(false);
-      }
-      
-      
-    };
 
-    requestAnimationFrame(animate);
+        // Pointer points at 12 o'clock, which is -π/2 relative to 0
+        const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
+
+        // Add half a slice so we pick the slice that the pointer is closest to
+        const selectedIndex = Math.floor((pointerAngle + sliceAngle / 2) / sliceAngle) % sliceCount;
+
+        console.log("Selected index:", wheelList[selectedIndex]);
+
+  
+          setSelectedSlice(selectedIndex);
+  
+          if (!replacement) {
+            wheelList.splice(selectedIndex, 1);
+            // Update temporary state so wheel redraws correctly
+            setWheelList([...wheelList]);
+          }
+        }
+      };
+  
+      requestAnimationFrame(animate);
+      await sleep(4000);
+    }
+  
+    // Restore the original wheel after simulation ends
+    setWheelList(originalWheel);
+    setIsSpinning(false);
   };
 
+  const handleButton = async () => {
+    if (isSimulating) {
+      setChosenSamples([]);
+      setIsSimulating(false);
+    } 
+    else { 
+      await simulateSampling(); 
+    } 
+  }
+
+  const simulateSampling = async () => {
+
+    setIsSimulating(true);
+    let iterations;
+  
+    // Handle percentage
+    if (typeof sampleSizeValue === "string" && sampleSizeValue.endsWith("%")) {
+      const percent = parseFloat(sampleSizeValue);
+      iterations = Math.round((percent / 100) * wheelList.length);
+    } 
+    // Handle number
+    else {
+      iterations = Number(sampleSizeValue);
+    }
+  
+    if (!iterations || iterations <= 0) return;
+      
+    await spinWheel(withReplacement, iterations);
+    
+  };
+  
+  useEffect(() => {
+    console.log("chosenSamples changed:", chosenSamples);
+  }, [chosenSamples]);
+  
   // Handle textarea change
   const handleTextareaChange = (e) => {
     const value = e.target.value;
@@ -169,6 +242,46 @@ function drawWheel() {
     if (items.length > 0) {
       setWheelList(items);
     }
+  };
+
+  const handleSampleSizeChange = (e) => {
+    const value = e.target.value;
+
+    // Handle empty input
+    if (value === "") {
+      setSampleSize("");
+      setSampleSizeError("Sample Size Empty");
+      return;
+    }
+
+    // Number (e.g. 50, 12.5)
+    const isNumber = /^\d+(\.\d+)?$/.test(value);
+
+    // Percent (e.g. 25%, 12.5%)
+    const isPercent = /^\d+(\.\d+)?%$/.test(value);
+
+    if (!isNumber && !isPercent) {
+      setSampleSizeError("Enter a number or a percentage (e.g. 50 or 25%)");
+      setSampleSize(value);
+      return;
+    }
+
+    if (isNumber && parseFloat(value) > wheelList.length) {
+      setSampleSizeError("Sample Size cannot exceed the number of items in the wheel");
+      setSampleSize(value);
+      return;
+    }
+
+    // Extra rule: percentage ≤ 100
+    if (isPercent && parseFloat(value) > 100) {
+      setSampleSizeError("Percentage cannot exceed 100%");
+      setSampleSize(value);
+      return;
+    }
+
+    // Valid
+    setSampleSizeError("");
+    setSampleSize(value);
   };
 
   return createPortal(
@@ -194,35 +307,87 @@ function drawWheel() {
             <div className="text-3xl font-semibold text-gray-800 mb-4">
               {learnData.title}
             </div>
-            <div className="text-600 text-[14px] text-justify">
+
+            {!isSimulating && <div className="text-600 text-[14px] text-justify">
               {learnData.description.split("\n").map((line, idx) => {
                 const trimmed = line.trim();
                 return trimmed ? (
                   <p key={idx} className="mb-4">{line}</p>
                 ) : null;
               })}
-            </div>
+            </div>}
 
             {/* Textarea for wheel data */}
             <div className="flex flex-col gap-2 mt-4">
-              <label className="font-semibold">Wheel Data (comma-separated)</label>
+              <label className="font-semibold">Population</label>
               <textarea
                 value={textareaValue}
+                disabled={isSimulating}
                 onChange={handleTextareaChange}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={3}
               />
             </div>
+            {/* Replacement option */}
+            {!isSimulating && <div className="mt-4">
+              <label className="font-semibold block mb-2">Sampling Method</label>
+
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="replacement"
+                    checked={!withReplacement}
+                    onChange={() => setWithReplacement(false)}
+                  />
+                  <span>Without replacement</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="replacement"
+                    checked={withReplacement}
+                    onChange={() => setWithReplacement(true)}
+                  />
+                  <span>With replacement</span>
+                </label>
+
+                
+              </div>
+            </div>}
+
+            {/* Sample Size */}
+            {!isSimulating &&<div>
+              <label className="font-semibold">Sample Size</label>
+              <input type="text" value={sampleSizeValue} onChange={handleSampleSizeChange} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              <div className="text-red-500 text-sm">{sampleSizeError}</div>  
+            </div>}
+            
+            {chosenSamples.length > 0 && isSimulating && <div className="flex flex-col gap-2 mt-4">
+              <label className="font-semibold">Chosen Samples</label>
+              <textarea
+                value={chosenValuesTextAreaValue}
+                disabled={isSimulating}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+              />
+            </div>}
 
             {/* Spin button */}
             <button
-              onClick={spinWheel}
-              disabled={isSpinning || wheelList.length === 0}
+              onClick={handleButton}
+              disabled={ isSpinning || wheelList.length === 0}
               className={`mt-4 px-4 py-2 rounded text-white ${
-                isSpinning ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
+                isSpinning
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600'
               }`}
             >
-              {isSpinning ? 'Simulating...' : 'Simulate'}
+              {isSimulating 
+                ? (isSpinning ? 'Simulating...' : 'End Simulation') 
+                : 'Simulate'}
+
             </button>
           </div>
 
