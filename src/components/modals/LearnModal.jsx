@@ -1,6 +1,4 @@
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
-import SimpleRandomSampling from "./learn_modals/SimpleRandomSampling";
 
 export default function LearnModal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
@@ -21,8 +19,6 @@ export default function LearnModal({ isOpen, onClose, children }) {
         >
           ✕
         </button>
-
-        <SimpleRandomSampling />
 
         {children}
       </div>

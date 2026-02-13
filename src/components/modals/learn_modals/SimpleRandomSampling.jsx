@@ -1,7 +1,7 @@
-import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
+import LearnModal from "../LearnModal";
 
-export default function SimpleRandomSampling() {
+export default function SimpleRandomSampling({ isOpen, onClose, children }) {
 
   const canvasRef = useRef(null);
 
@@ -283,6 +283,8 @@ function drawWheel() {
   };
 
   return (
+
+   <LearnModal isOpen={isOpen} onClose={onClose}>
       <div className="flex">
 
          {/* Left panel */}
@@ -346,7 +348,7 @@ function drawWheel() {
             <input type="text" value={sampleSizeValue} onChange={handleSampleSizeChange} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
             <div className="text-red-500 text-sm">{sampleSizeError}</div>  
          </div>}
-         
+
          {chosenSamples.length > 0 && isSimulating && <div className="flex flex-col gap-2 mt-4">
             <label className="font-semibold">Chosen Samples</label>
             <textarea
@@ -378,7 +380,9 @@ function drawWheel() {
          <div className="w-1/2 p-4">
          <canvas ref={canvasRef} className="w-full aspect-square border-2" />
          </div>
-         
+
       </div>
+   </LearnModal>
+     
   );
 }
