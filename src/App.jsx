@@ -5,8 +5,8 @@ import Parameters from './components/Parameters'
 import Results from './components/Results'
 import StepIndicator from './components/StepIndicator'
 import Header from './components/Header'
-import LearnModal from './components/modals/LearnModal'
 import SimpleRandomSampling from './components/modals/learn_modals/SimpleRandomSampling'
+import SystematicSamplingModal from './components/modals/learn_modals/SystematicSampling'
 
 const STEPS = [
   { id: 1, title: 'Choose Method', component: MethodSelection },
@@ -77,8 +77,16 @@ function App() {
       {/* Header */}
       <Header />
 
-      <SimpleRandomSampling isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-      </SimpleRandomSampling>
+      {/* <SimpleRandomSampling isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+      </SimpleRandomSampling> */}
+
+      <SystematicSamplingModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          populationSize={30}
+          sampleSize={6}
+      />
+
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         
