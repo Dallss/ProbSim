@@ -284,7 +284,7 @@ function drawWheel() {
 
   return (
 
-   <LearnModal isOpen={isOpen} onClose={onClose}>
+   <LearnModal isOpen={isOpen}>
       <div className="flex">
 
          {/* Left panel */}
