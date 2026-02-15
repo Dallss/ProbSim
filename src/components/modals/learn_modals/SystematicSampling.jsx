@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import LearnModal from "../LearnModal";
 
 export default function SystematicSamplingModal({ isOpen, onClose }) {
   const containerRef = useRef(null);
   const queueWrapperRef = useRef(null);
-
+  const tlRef = useRef(null); // timeline reference
+  
   // Single state machine
   const [simState, setSimState] = useState("idle"); // "idle" | "playing" | "done"
 
@@ -44,6 +45,7 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
       defaults: { duration: 0.5 },
       onComplete: () => setSimState("done"),
     });
+    tlRef.current = tl; // store reference
 
     const queueRect = queueWrapperRef.current.getBoundingClientRect();
     let rowOffset = 0;
@@ -125,23 +127,41 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
   };
 
   const resetSimulation = () => {
-    queueWrapperRef.current.innerHTML = "";
+    // Kill any running timeline
+    if (tlRef.current) {
+      tlRef.current.kill();
+      tlRef.current = null;
+    }
+
+    // Clear queue & logs
+    if (queueWrapperRef.current) queueWrapperRef.current.innerHTML = "";
     if (logRef.current) logRef.current.innerHTML = "";
-    boxRefs.current.forEach(box => {
+
+    // Reset boxes
+    boxRefs.current.forEach((box) => {
       if (!box) return;
       const counter = box.querySelector(".step-counter");
+      const label = box.querySelector(".label");
       counter.textContent = "-1";
       counter.style.opacity = "0";
-      const label = box.querySelector(".label");
       label.style.backgroundColor = "#ec4899";
       label.style.scale = "1";
       label.style.opacity = "1";
+      gsap.set(label, { x: 0, y: 0, clearProps: "all" }); // reset transforms
     });
+
     setSimState("idle");
   };
 
+
+  const handleClose = () => {
+    resetSimulation(); // DOM still exists
+    onClose?.();
+  };
+  
+
   return (
-    <LearnModal isOpen={isOpen} onClose={onClose} title="Systematic Sampling Simulation">
+    <LearnModal isOpen={isOpen} onClose={handleClose} title="Systematic Sampling Simulation">
       <div className="flex h-full">
 
         {/* Left panel */}

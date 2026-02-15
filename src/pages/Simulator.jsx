@@ -4,7 +4,6 @@ import DataInput from '../components/DataInput'
 import Parameters from '../components/Parameters'
 import Results from '../components/Results'
 import StepIndicator from '../components/StepIndicator'
-import SystematicSamplingModal from '../components/modals/learn_modals/SystematicSampling'
 
 const STEPS = [
   { id: 1, title: 'Choose Method', component: MethodSelection },
@@ -80,13 +79,6 @@ export default function Simulator() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      <SystematicSamplingModal
-        isOpen={true}
-        populationSize={30}
-        sampleSize={6}
-      />
-
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <StepIndicator
           steps={STEPS}
