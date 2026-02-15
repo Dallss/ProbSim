@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { Wheel } from "spin-wheel";
 import LearnModal from "../LearnModal";
 
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+function getWheelItems(labels) {
+  return labels.map((label, i) => ({
+    label,
+    backgroundColor: `hsl(${(i * 360) / labels.length}, 70%, 60%)`,
+    labelColor: "#111",
+  }));
+}
+
 export default function SimpleRandomSampling({ isOpen, onClose }) {
-  const canvasRef = useRef(null);
-  const rotationRef = useRef(0);
-  const animationFrameRef = useRef(null);
+  const wheelContainerRef = useRef(null);
+  const wheelRef = useRef(null);
+  const abortRef = useRef(false);
 
   const [wheelList, setWheelList] = useState([
     "Zoro",
@@ -34,144 +45,83 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
 `,
   };
 
-  // Utility: light or dark text color
-  function isLightColor(h, s = 70, l = 60) {
-    const c = (1 - Math.abs(2 * l / 100 - 1)) * (s / 100);
-    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-    const m = l / 100 - c / 2;
-    let r1, g1, b1;
-    if (h < 60) [r1, g1, b1] = [c, x, 0];
-    else if (h < 120) [r1, g1, b1] = [x, c, 0];
-    else if (h < 180) [r1, g1, b1] = [0, c, x];
-    else if (h < 240) [r1, g1, b1] = [0, x, c];
-    else if (h < 300) [r1, g1, b1] = [x, 0, c];
-    else [r1, g1, b1] = [c, 0, x];
-    const r = Math.round((r1 + m) * 255);
-    const g = Math.round((g1 + m) * 255);
-    const b = Math.round((b1 + m) * 255);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 150;
-  }
-
   const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-  // Draw the wheel
-  function drawWheel(rotation = rotationRef.current) {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const size = canvas.offsetWidth || 300;
-    canvas.width = size;
-    canvas.height = size;
-
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const radius = size / 2 - 10;
-    const sliceAngle = (2 * Math.PI) / wheelList.length;
-
-    const colors = wheelList.map((_, i) => {
-      const hue = (i * 360) / wheelList.length;
-      return { h: hue, color: `hsl(${hue}, 70%, 60%)` };
-    });
-
-    wheelList.forEach((label, index) => {
-      const startAngle = index * sliceAngle + rotation;
-      const endAngle = startAngle + sliceAngle;
-
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = selectedSlice === index ? "#34d399" : colors[index].color;
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.stroke();
-
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate(startAngle + sliceAngle / 2);
-      ctx.textAlign = "right";
-      ctx.fillStyle =
-        selectedSlice === index ? "#111" : isLightColor(colors[index].h) ? "#111" : "#FFF";
-      ctx.font = "bold 16px sans-serif";
-      ctx.fillText(label, radius - 15, 5);
-      ctx.restore();
-    });
-
-    // Pointer
-    ctx.beginPath();
-    ctx.moveTo(centerX, 25);
-    ctx.lineTo(centerX - 10, 5);
-    ctx.lineTo(centerX + 10, 5);
-    ctx.closePath();
-    ctx.fillStyle = "black";
-    ctx.fill();
-  }
-
-  // Redraw wheel whenever modal opens
+  // Create/destroy wheel when modal opens/closes
   useEffect(() => {
-    if (isOpen) setTimeout(drawWheel, 50);
-  }, [isOpen, wheelList, selectedSlice]);
+    if (!isOpen || !wheelContainerRef.current) return;
+
+    const wheel = new Wheel(wheelContainerRef.current, {
+      items: getWheelItems(wheelList),
+      isInteractive: false,
+      lineColor: "#fff",
+      lineWidth: 2,
+      itemLabelFontSizeMax: 24,
+    });
+    wheelRef.current = wheel;
+
+    return () => {
+      wheel.remove();
+      wheelRef.current = null;
+    };
+  }, [isOpen]);
+
+  // Update wheel items when wheelList changes (and not simulating)
+  useEffect(() => {
+    if (wheelRef.current && isOpen && !isSimulating) {
+      wheelRef.current.items = getWheelItems(wheelList);
+    }
+  }, [wheelList, isOpen, isSimulating]);
 
   // Update chosenSamples textarea
   useEffect(() => {
     setChosenValuesTextAreaValue(chosenSamples.join(", "));
   }, [chosenSamples]);
 
-  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const spinToItemAsync = (targetIndex) =>
+    new Promise((resolve) => {
+      const wheel = wheelRef.current;
+      if (!wheel) return resolve(null);
+      wheel.onRest = (event) => resolve(event);
+      wheel.spinToItem(targetIndex, 3000, true, 3, 1, easeOutCubic);
+    });
 
-  // Spin logic
   const spinWheel = async (replacement, iterations) => {
     if (isSpinning) return;
     setIsSpinning(true);
+    abortRef.current = false;
     const originalWheel = [...wheelList];
+    let currentList = [...wheelList];
 
     for (let i = 0; i < iterations; i++) {
+      if (abortRef.current) break;
       setSelectedSlice(null);
 
-      const sliceAngle = (2 * Math.PI) / wheelList.length;
-      const randomSlice = Math.floor(Math.random() * wheelList.length);
-      const randomOffset = Math.random() * sliceAngle;
-      const spins = 3; // full rotations
-      const finalRotation = spins * 2 * Math.PI + randomSlice * sliceAngle + randomOffset;
+      const wheel = wheelRef.current;
+      if (!wheel || currentList.length === 0) break;
 
-      const duration = 3000;
-      let startTime = null;
+      const randomIndex = Math.floor(Math.random() * currentList.length);
 
-      await new Promise((resolve) => {
-        const animate = (timestamp) => {
-          if (!startTime) startTime = timestamp;
-          const elapsed = timestamp - startTime;
-          const t = Math.min(elapsed / duration, 1);
-          const eased = easeOutCubic(t);
+      wheel.items = getWheelItems(currentList);
+      await spinToItemAsync(randomIndex);
 
-          rotationRef.current = finalRotation * eased;
-          drawWheel(rotationRef.current);
+      if (abortRef.current) break;
 
-          if (t < 1) {
-            animationFrameRef.current = requestAnimationFrame(animate);
-          } else {
-            const normalizedRotation = rotationRef.current % (2 * Math.PI);
-            const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
-            const selectedIndex = Math.floor((pointerAngle + sliceAngle / 2) / sliceAngle) % wheelList.length;
+      const selectedLabel = currentList[randomIndex];
+      setSelectedSlice(randomIndex);
+      setChosenSamples((prev) => [...prev, selectedLabel]);
 
-            setSelectedSlice(selectedIndex);
-            setChosenSamples((prev) => [...prev, wheelList[selectedIndex]]);
+      if (!replacement) {
+        currentList = currentList.filter((_, idx) => idx !== randomIndex);
+      }
 
-            if (!replacement) {
-              wheelList.splice(selectedIndex, 1);
-              setWheelList([...wheelList]);
-            }
-
-            resolve();
-          }
-        };
-        animationFrameRef.current = requestAnimationFrame(animate);
-      });
-
-      await sleep(500); // small pause between spins
+      await sleep(500);
     }
+
     setWheelList(originalWheel);
+    if (wheelRef.current) {
+      wheelRef.current.items = getWheelItems(originalWheel);
+    }
     setIsSpinning(false);
   };
 
@@ -226,18 +176,20 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
     setSampleSize(value);
   };
 
-  // Fully cancelable reset
   const resetWheel = () => {
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    abortRef.current = true;
+    const wheel = wheelRef.current;
+    if (wheel) wheel.stop();
     setIsSpinning(false);
     setIsSimulating(false);
-    rotationRef.current = 0;
     setSelectedSlice(null);
     setChosenSamples([]);
     setChosenValuesTextAreaValue("");
     const items = textareaValue.split(",").map((x) => x.trim()).filter(Boolean);
-    setWheelList(items);
-    drawWheel(0);
+    setWheelList(items.length ? items : wheelList);
+    if (wheel && items.length) {
+      wheel.items = getWheelItems(items);
+    }
   };
 
   const handelClose = () => {
@@ -338,7 +290,19 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
 
         {/* Right panel */}
         <div className="w-1/2 p-4">
-          <canvas ref={canvasRef} className="w-full aspect-square border-2 bg-gray-100" />
+          <div className="relative w-full aspect-square border-2 border-gray-300 rounded bg-gray-100 overflow-hidden">
+            <div ref={wheelContainerRef} className="w-full h-full min-h-[200px]" />
+            {/* Pointer overlay at top */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10 w-0 h-0"
+              style={{
+                borderLeft: "12px solid transparent",
+                borderRight: "12px solid transparent",
+                borderTop: "20px solid #1f2937",
+              }}
+              aria-hidden
+            />
+          </div>
         </div>
       </div>
     </LearnModal>
