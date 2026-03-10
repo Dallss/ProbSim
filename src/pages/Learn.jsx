@@ -3,6 +3,7 @@ import LearnItem from "../components/LearnItem";
 import SystematicSamplingModal from "../components/modals/learn_modals/SystematicSampling";
 import SimpleRandomSampling from "../components/modals/learn_modals/SimpleRandomSampling";
 import UnderDevOverlay from "../components/UnderDevOverlay";
+import ClusterSamplingModal from "../components/modals/learn_modals/ClusterSampling";
 
 
 const learn_item_props = [
@@ -25,7 +26,7 @@ const learn_item_props = [
     description:
       "Divide the population into clusters (groups), randomly select clusters, then include all members of the selected clusters.",
     modal: "cluster",
-    underDev: true,
+    underDev: false,
   },
   {
     title: "Stratified Sampling",
@@ -79,6 +80,13 @@ export default function Learn() {
       <SimpleRandomSampling
         isOpen={openModal === "srs"}
         onClose={() => setOpenModal(null)}
+      />
+
+      <ClusterSamplingModal
+        isOpen={openModal === "cluster"}
+        onClose={() => setOpenModal(null)}
+        populationSize={30}
+        sampleSize={6}
       />
     </div>
   );

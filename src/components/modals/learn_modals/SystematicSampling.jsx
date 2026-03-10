@@ -34,12 +34,20 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
   const boxRefs = useRef([]);
   const MIN_GAP = 0;
 
+  useEffect(() => {
+    if (simState === "playing") {
+      log("Simulation started. Let's dive deep into the process!");
+    }
+  }, [simState]);
+  
   const playSimulation = () => {
     if (simState === "playing") return;
     setSimState("playing");
 
     // Clear previous logs
     if (logRef.current) logRef.current.innerHTML = "";
+
+    log("Simulation strated Let's dive deep into the process!");
 
     const tl = gsap.timeline({
       defaults: { duration: 0.5 },
@@ -59,7 +67,7 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
       const boxLabel = box.querySelector(".step-counter");
       iToKBoxLabels.push(boxLabel);
     }
-
+    
     // Animate labels appearing 1 → k
     iToKBoxLabels.forEach((label, idx) => {
       if (!label) return;
