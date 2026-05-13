@@ -2,7 +2,7 @@
    position: relative;
    width: 100%;
    height: 160px; /* adjust as needed */
-   background: aliceblue;
+   background: rgb(226, 240, 253);
    overflow: hidden;
  
    display: flex;
