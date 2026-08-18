@@ -13,10 +13,8 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
   // Sampling variables
   const [populationSize, setPopulationSize] = useState(30);
   const [sampleSize, setSampleSize] = useState(5);
-  const step = Math.floor(populationSize / sampleSize); 
+  const step = Math.max(1, Math.floor(populationSize / sampleSize));
   const i_step = step - 1;
-  const start = 3;
-  const i_start = start - 1;
 
   // Logger ref
   const logRef = useRef(null);
@@ -47,7 +45,9 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
     // Clear previous logs
     if (logRef.current) logRef.current.innerHTML = "";
 
-    log("Simulation strated Let's dive deep into the process!");
+    // Random start r, 1 <= r <= step, chosen fresh for this run
+    const start = Math.floor(Math.random() * step) + 1;
+    const i_start = start - 1;
 
     const tl = gsap.timeline({
       defaults: { duration: 0.5 },
@@ -68,11 +68,11 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
       iToKBoxLabels.push(boxLabel);
     }
     
-    // Animate labels appearing 1 → k
+    // Animate labels appearing 1 → step
     iToKBoxLabels.forEach((label, idx) => {
       if (!label) return;
       label.style.opacity = 0;
-      label.textContent = idx === i_step ? 'k' : idx + 1;
+      label.textContent = idx === i_step ? 'step' : idx + 1;
       tl.to(label, { opacity: 1, duration: 0.5, ease: "power1.out" }, 0);
     });
     iToKBoxLabels.forEach((label, idx) => {
@@ -81,25 +81,28 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
       tl.to(label, { opacity: 0, duration: 0.5, ease: "power1.out" }, 1);
     });
 
-    // Simulate systematic sampling
-    for (let i = i_start; i < populationSize; i++) {
+    // Simulate systematic sampling. Stop once we've picked exactly
+    // sampleSize elements — the leftover remainder (N - step*sampleSize)
+    // can otherwise let a lucky start yield one extra pick.
+    let pickedCount = 0;
+    for (let i = i_start; i < populationSize && pickedCount < sampleSize; i++) {
       const box = boxRefs.current[i];
       if (!box) continue;
 
       const boxLabel = box.querySelector(".label");
       const boxStepCounter = box.querySelector(".step-counter");
       const boxRect = box.getBoundingClientRect();
+      const isPick = (i - i_start) % step === 0;
 
       // Highlight animation
       tl.to(boxLabel, {
         backgroundColor: "#ffe066",
         scale: 1.1,
         onStart: () => {
-          const value = ((i - i_start) % step === 0) ? 'pick' : (i - i_start) % step;
-          boxStepCounter.textContent = value;
+          boxStepCounter.textContent = isPick ? 'pick' : (i - i_start) % step;
           boxStepCounter.style.opacity = "1";
 
-          if ((i - i_start) % step === 0) {
+          if (isPick) {
             log(`Picked: ${i + 1}`);
           }
         },
@@ -115,7 +118,8 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
       const targetY = rowOffset;
 
       // Only animate selected boxes to queue
-      if ((i - i_start) % step === 0) {
+      if (isPick) {
+        pickedCount++;
         tl.to(boxLabel, {
           x: 0,
           y: targetY - (boxRect.top - queueRect.top),
@@ -212,11 +216,13 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
                   min={1}
                   max={30}
                   value={populationSize}
+                  disabled={simState === "playing"}
                   onChange={(e) => {
                     const val = Math.min(30, Math.max(1, parseInt(e.target.value) || 1));
                     setPopulationSize(val);
+                    setSampleSize((s) => Math.min(s, val));
                   }}
-                  className="border px-2 py-1 rounded w-full"
+                  className="border px-2 py-1 rounded w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -224,11 +230,15 @@ export default function SystematicSamplingModal({ isOpen, onClose }) {
                 <label className="block text-sm font-medium mb-1">Sample Size</label>
                 <input
                   type="number"
-                  min={0}
+                  min={1}
                   max={populationSize}
                   value={sampleSize}
-                  onChange={(e) => setSampleSize(parseInt(e.target.value) || 0)}
-                  className="border px-2 py-1 rounded w-full"
+                  disabled={simState === "playing"}
+                  onChange={(e) => {
+                    const val = Math.min(populationSize, Math.max(1, parseInt(e.target.value) || 1));
+                    setSampleSize(val);
+                  }}
+                  className="border px-2 py-1 rounded w-full disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
