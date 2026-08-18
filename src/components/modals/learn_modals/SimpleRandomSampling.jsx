@@ -14,6 +14,22 @@ function getWheelItems(labels) {
   }));
 }
 
+// Redraws the full population wheel at the end of a run, picking out the
+// chosen labels in gold and dimming everything that wasn't sampled — so the
+// final sample reads clearly against the population instead of the wheel
+// just quietly resetting back to its normal colors.
+function getFinalWheelItems(labels, pickedLabels) {
+  const pickedSet = new Set(pickedLabels);
+  return labels.map((label) => {
+    const isPicked = pickedSet.has(label);
+    return {
+      label,
+      backgroundColor: isPicked ? "#facc15" : "#e5e7eb",
+      labelColor: isPicked ? "#111" : "#9ca3af",
+    };
+  });
+}
+
 export default function SimpleRandomSampling({ isOpen, onClose }) {
   const wheelContainerRef = useRef(null);
   const wheelRef = useRef(null);
@@ -33,6 +49,7 @@ export default function SimpleRandomSampling({ isOpen, onClose }) {
   const [selectedSlice, setSelectedSlice] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationDone, setSimulationDone] = useState(false);
   const [textareaValue, setTextareaValue] = useState(wheelList.join(", "));
   const [chosenValuesTextAreaValue, setChosenValuesTextAreaValue] = useState("");
   const [withReplacement, setWithReplacement] = useState(false);
@@ -128,9 +145,11 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
   const spinWheel = async (replacement, iterations) => {
     if (isSpinning) return;
     setIsSpinning(true);
+    setSimulationDone(false);
     abortRef.current = false;
     const originalWheel = [...wheelList];
     let currentList = [...wheelList];
+    const picked = [];
 
     for (let i = 0; i < iterations; i++) {
       if (abortRef.current) break;
@@ -147,6 +166,7 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
       if (abortRef.current) break;
 
       const selectedLabel = currentList[randomIndex];
+      picked.push(selectedLabel);
       setSelectedSlice(randomIndex);
       setChosenSamples((prev) => [...prev, selectedLabel]);
 
@@ -162,7 +182,12 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
 
     setWheelList(originalWheel);
     if (wheelRef.current) {
-      wheelRef.current.items = getWheelItems(originalWheel);
+      if (!abortRef.current && picked.length > 0) {
+        wheelRef.current.items = getFinalWheelItems(originalWheel, picked);
+        setSimulationDone(true);
+      } else {
+        wheelRef.current.items = getWheelItems(originalWheel);
+      }
     }
     setIsSpinning(false);
   };
@@ -240,6 +265,7 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
     if (wheel) wheel.stop();
     setIsSpinning(false);
     setIsSimulating(false);
+    setSimulationDone(false);
     setSelectedSlice(null);
     setChosenSamples([]);
     setChosenValuesTextAreaValue("");
@@ -320,7 +346,7 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
             </div>
           )}
 
-          {chosenSamples.length > 0 && isSimulating && (
+          {chosenSamples.length > 0 && isSimulating && !simulationDone && (
             <div className="flex flex-col gap-2 mt-4">
               <label className="font-semibold">Chosen Samples</label>
               <textarea
@@ -332,16 +358,48 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
             </div>
           )}
 
+          {simulationDone && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-fadeIn">
+              <p className="text-green-700 font-bold text-lg mb-1">Simulation Complete!</p>
+              <p className="text-sm text-gray-600 mb-3">
+                {chosenSamples.length} of {wheelList.length} population members were randomly
+                selected{withReplacement ? " (with replacement)" : " (without replacement)"} —
+                highlighted in gold on the wheel.
+              </p>
+              <label className="font-semibold block mb-2">Final Sample</label>
+              <div className="flex flex-wrap gap-2">
+                {chosenSamples.map((label, idx) => (
+                  <span
+                    key={`${label}-${idx}`}
+                    className="px-3 py-1 rounded-full bg-yellow-400 text-gray-900 text-sm font-medium shadow-sm"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Buttons */}
           <div className="flex gap-2 mt-4">
             <button
               onClick={handleButton}
               disabled={isSpinning || wheelList.length === 0}
               className={`px-4 py-2 rounded text-white ${
-                isSpinning ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+                isSpinning
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : simulationDone
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
-              {isSimulating ? (isSpinning ? "Simulating..." : "End Simulation") : "Simulate"}
+              {isSimulating
+                ? isSpinning
+                  ? "Simulating..."
+                  : simulationDone
+                  ? "Try Again"
+                  : "End Simulation"
+                : "Simulate"}
             </button>
           </div>
         </div>
