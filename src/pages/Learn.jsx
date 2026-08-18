@@ -5,6 +5,7 @@ import SimpleRandomSampling from "../components/modals/learn_modals/SimpleRandom
 import UnderDevOverlay from "../components/UnderDevOverlay";
 import ClusterSamplingModal from "../components/modals/learn_modals/ClusterSampling";
 import StratifiedSamplingModal from "../components/modals/learn_modals/StratifiedSampling";
+import MultistageSamplingModal from "../components/modals/learn_modals/MultistageSampling";
 
 
 const learn_item_props = [
@@ -41,7 +42,7 @@ const learn_item_props = [
     description:
       "Sampling is done in multiple stages, combining methods (for example: select clusters, then do random sampling inside each cluster).",
     modal: "multistage",
-    underDev: true,
+    underDev: false,
   },
 ];
 
@@ -92,6 +93,11 @@ export default function Learn() {
 
       <StratifiedSamplingModal
         isOpen={openModal === "stratified"}
+        onClose={() => setOpenModal(null)}
+      />
+
+      <MultistageSamplingModal
+        isOpen={openModal === "multistage"}
         onClose={() => setOpenModal(null)}
       />
     </div>
