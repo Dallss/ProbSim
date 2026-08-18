@@ -125,11 +125,27 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
     setIsSpinning(false);
   };
 
+  // Resolves the "N" or "N%" sample size input into a concrete item count.
+  const resolveIterations = () => {
+    const value = String(sampleSizeValue).trim();
+    if (value.endsWith("%")) {
+      const pct = parseFloat(value);
+      if (!pct || pct <= 0) return 0;
+      return Math.round((pct / 100) * wheelList.length);
+    }
+    const num = parseFloat(value);
+    if (!num || num <= 0) return 0;
+    return Math.floor(num);
+  };
+
   // Simulate button
   const simulateSampling = async () => {
+    const iterations = resolveIterations();
+    if (!iterations || iterations <= 0) {
+      setSampleSizeError("Enter a valid sample size before simulating");
+      return;
+    }
     setIsSimulating(true);
-    let iterations = Number(sampleSizeValue);
-    if (!iterations || iterations <= 0) return;
     await spinWheel(withReplacement, iterations);
   };
 
