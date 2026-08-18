@@ -4,6 +4,7 @@ import SystematicSamplingModal from "../components/modals/learn_modals/Systemati
 import SimpleRandomSampling from "../components/modals/learn_modals/SimpleRandomSampling";
 import UnderDevOverlay from "../components/UnderDevOverlay";
 import ClusterSamplingModal from "../components/modals/learn_modals/ClusterSampling";
+import StratifiedSamplingModal from "../components/modals/learn_modals/StratifiedSampling";
 
 
 const learn_item_props = [
@@ -33,7 +34,7 @@ const learn_item_props = [
     description:
       "Divide the population into strata (subgroups based on characteristics), then randomly sample from each stratum.",
     modal: "stratified",
-    underDev: true,
+    underDev: false,
   },
   {
     title: "Multistage Sampling",
@@ -87,6 +88,11 @@ export default function Learn() {
         onClose={() => setOpenModal(null)}
         populationSize={30}
         sampleSize={6}
+      />
+
+      <StratifiedSamplingModal
+        isOpen={openModal === "stratified"}
+        onClose={() => setOpenModal(null)}
       />
     </div>
   );
