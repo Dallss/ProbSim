@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import TopNav from './components/TopNav'
 import Simulator from './pages/Simulator'
 import Learn from './pages/Learn'
+import NonProbSampling from './pages/NonProbSampling'
 import Header from './components/Header'
 import 'leaflet/dist/leaflet.css';
 
@@ -15,6 +16,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Simulator />} />
         <Route path="/learn" element={<Learn />} />
+        <Route path="/non-probability" element={<NonProbSampling />} />
       </Routes>
     </BrowserRouter>
   )
