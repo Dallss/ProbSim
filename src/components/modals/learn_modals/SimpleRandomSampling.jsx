@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Wheel } from "spin-wheel";
 import LearnModal from "../LearnModal";
 
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+// Ramps up from a standstill and eases back down into the landing, instead
+// of jumping straight to full speed like easeOutCubic (t) => 1 - (1-t)^3 does.
+const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 function getWheelItems(labels) {
   return labels.map((label, i) => ({
@@ -120,7 +122,7 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
       const wheel = wheelRef.current;
       if (!wheel) return resolve(null);
       wheel.onRest = (event) => resolve(event);
-      wheel.spinToItem(targetIndex, 3000, true, 3, 1, easeOutCubic);
+      wheel.spinToItem(targetIndex, 3000, true, 3, 1, easeInOutCubic);
     });
 
   const spinWheel = async (replacement, iterations) => {
