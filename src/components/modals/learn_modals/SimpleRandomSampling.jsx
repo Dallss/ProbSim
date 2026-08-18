@@ -4,24 +4,12 @@ import LearnModal from "../LearnModal";
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
-// `highlight` optionally re-colors one slice (by index) to emphasize it being
-// picked/removed: { index, alpha } where alpha fades 1 -> 0 as it's removed.
-function getWheelItems(labels, highlight = null) {
-  return labels.map((label, i) => {
-    if (highlight && i === highlight.index) {
-      const alpha = highlight.alpha ?? 1;
-      return {
-        label,
-        backgroundColor: `rgba(250, 204, 21, ${alpha})`, // gold flash, fading out
-        labelColor: `rgba(17, 17, 17, ${alpha})`,
-      };
-    }
-    return {
-      label,
-      backgroundColor: `hsl(${(i * 360) / labels.length}, 70%, 60%)`,
-      labelColor: "#111",
-    };
-  });
+function getWheelItems(labels) {
+  return labels.map((label, i) => ({
+    label,
+    backgroundColor: `hsl(${(i * 360) / labels.length}, 70%, 60%)`,
+    labelColor: "#111",
+  }));
 }
 
 export default function SimpleRandomSampling({ isOpen, onClose }) {
@@ -93,21 +81,29 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
   // Flashes the picked slice gold, then fades it to transparent, before it's
   // actually removed from the wheel — so "without replacement" reads as a
   // deliberate removal instead of the slice just vanishing on the next spin.
-  const animateRemoval = (list, index) =>
+  //
+  // Important: this mutates the existing Item's color properties in place
+  // rather than reassigning `wheel.items` every frame. Reassigning `items`
+  // rebuilds every slice AND calls the library's resize(), which resets the
+  // canvas's width/height — clearing the whole canvas — every single frame.
+  // Direct property mutation only triggers a lightweight redraw.
+  const animateRemoval = (index) =>
     new Promise((resolve) => {
       const wheel = wheelRef.current;
-      if (!wheel) return resolve();
+      const item = wheel?.items[index];
+      if (!wheel || !item) return resolve();
 
       const HOLD_MS = 300; // solid gold highlight
       const FADE_MS = 350; // fade to transparent
       const start = performance.now();
 
       const frame = (now) => {
-        if (abortRef.current || !wheelRef.current) return resolve();
+        if (abortRef.current || !wheelRef.current?.items[index]) return resolve();
 
         const elapsed = now - start;
         const alpha = elapsed <= HOLD_MS ? 1 : Math.max(0, 1 - (elapsed - HOLD_MS) / FADE_MS);
-        wheelRef.current.items = getWheelItems(list, { index, alpha });
+        item.backgroundColor = `rgba(250, 204, 21, ${alpha})`; // gold flash, fading out
+        item.labelColor = `rgba(17, 17, 17, ${alpha})`;
 
         if (elapsed < HOLD_MS + FADE_MS) {
           requestAnimationFrame(frame);
@@ -153,7 +149,7 @@ Simple Random Sampling is a method of choosing a sample from a population so tha
       setChosenSamples((prev) => [...prev, selectedLabel]);
 
       if (!replacement) {
-        await animateRemoval(currentList, randomIndex);
+        await animateRemoval(randomIndex);
         currentList = currentList.filter((_, idx) => idx !== randomIndex);
         if (abortRef.current) break;
         wheel.items = getWheelItems(currentList);
